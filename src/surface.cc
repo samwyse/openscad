@@ -86,7 +86,7 @@ AbstractNode *SurfaceModule::instantiate(const Context *ctx, const ModuleInstant
 	node->convexity = 1;
 
 	AssignmentList args;
-	args += Assignment("file"), Assignment("center"), Assignment("convexity");
+	args += Assignment("file"), Assignment("center"), Assignment("convexity"), Assignment("size");
 
 	Context c(ctx);
 	c.setVariables(args, evalctx);
@@ -103,6 +103,11 @@ AbstractNode *SurfaceModule::instantiate(const Context *ctx, const ModuleInstant
 	if (convexity->type() == Value::NUMBER) {
 		node->convexity = (int)convexity->toDouble();
 	}
+
+	ValuePtr size = c.lookup_variable("size", true);
+	size->getDouble(node->x);
+	size->getDouble(node->y);
+	size->getVec2(node->x, node->y);	}
 
 	ValuePtr invert = c.lookup_variable("invert", true);
 	if (invert->type() == Value::BOOL) {
@@ -209,9 +214,19 @@ img_data_t SurfaceNode::read_dat(std::string filename) const
 	return data;
 }
 
+img_data_t resample_image(img_data_t src, int x, int y)
+{
+	return src;
+}
+
 const Geometry *SurfaceNode::createGeometry() const
 {
 	img_data_t data = read_png_or_dat(filename);
+
+	if (this->x > 0 && this->y > 0 &&
+		!std::isinf(this->x) && !std::isinf(this->y)) {
+		img_data_t data = resample_image(data, this->x, this->y);
+	}
 
 	PolySet *p = new PolySet(3);
 	p->setConvexity(convexity);
